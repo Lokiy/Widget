@@ -7,7 +7,6 @@
 
     <declare-styleable name="XImageView">
         <attr name="autoZoom" />
-        <attr name="showImageWithoutNetStatus" format="boolean" />
 	    <!-- is needs Anim [default is true] -->
 	    <attr name="isAnim" format="boolean" />
 	    <!-- round should set true -->
@@ -15,11 +14,6 @@
         <attr name="cornerRadii" format="dimension" />
         <attr name="defaultImg" format="reference" />
         <attr name="zoomSize" />
-        <attr name="loadFailedVisibility">
-            <enum name="visible" value="0" />
-            <enum name="invisible" value="4" />
-            <enum name="gone" value="8" />
-        </attr>
 	    <attr name="type">
 		    <enum name="none" value="0" />
 		    <enum name="circle" value="1" />
@@ -77,22 +71,5 @@
 			<flag name="end" value="0x00800005" />
 	    </attr>
         <attr name="corner" format="boolean"/>
-	</declare-styleable>
-	<declare-styleable name="XRoundTextView">
-		<attr name="paintColor" format="color"/>
-		<attr name="paintPressedColor" format="color"/>
-		<attr name="pressedSelectorEnable" format="boolean"/>
-		<attr name="strokeWidth" format="dimension" />
-		<attr name="strokeBackground" format="color"/>
-		<attr name="style">
-			<enum name="FILL" value="0"/>
-			<enum name="FILL_RIGHT_CIRCLE" value="1"/>
-			<enum name="FILL_LEFT_CIRCLE" value="2"/>
-			<enum name="STROKE" value="3"/>
-			<enum name="STROKE_LEFT_CIRCLE" value="4"/>
-			<enum name="STROKE_RIGHT_CIRCLE" value="5"/>
-			<enum name="STROKE_WITH_BACKGROUND" value="6"/>
-			<enum name="NONE" value="7"/>
-		</attr>
 	</declare-styleable>
 </resources>

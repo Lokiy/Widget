@@ -1,34 +1,37 @@
-/**
- * Copyright (C) 2015 Luki(liulongke@gmail.com)
+/*
+ *
+ * Copyright (C) 2016 Lokiy(liulongke@gmail.com)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 　　　　http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *
+ *  　　　　http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package com.lokiy.widget;
 
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Paint;
+import android.support.v7.widget.AppCompatTextView;
 import android.text.Html;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
-import android.widget.TextView;
-
 
 /**
  * XTextView
- * Created by Luki on 2015/8/21.
+ * Created by Lokiy on 2015/8/21.
  * Version:1
  */
-public class XTextView extends TextView {
+public class XTextView extends AppCompatTextView {
 
 	private final int minTextSize;
 	private final int maxTextSize;
@@ -127,6 +130,16 @@ public class XTextView extends TextView {
 		}
 		i = 0;
 		while ((textPaint.measureText(measureText)) > targetWidth && i < 200) {//too big
+			float size = getTextSize() - 1f;
+			if (size < minTextSize) {
+				break;
+			}
+			this.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+			this.textPaint.setTextSize(size);
+			i++;
+		}
+		i = 0;
+		while (textPaint.getTextSize() > getHeight() && getHeight() != 0 && i < 200) {//too big
 			float size = getTextSize() - 1f;
 			if (size < minTextSize) {
 				break;

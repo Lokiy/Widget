@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2014 Luki(liulongke@gmail.com)
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,14 +31,13 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.DrawableContainer;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
-import android.view.ViewGroup.LayoutParams;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.AbsListView;
-import android.widget.ImageView;
 
 import com.lokiy.utils.NetStatusUtils;
 import com.lokiy.utils.XLog;
@@ -63,7 +62,7 @@ import java.io.File;
 		"deprecation",
 		"unused"
 })
-public class XImageView extends ImageView implements ImageLoadingListener, View.OnClickListener, ImageLoadingProgressListener {
+public class XImageView extends android.support.v7.widget.AppCompatImageView implements ImageLoadingListener, View.OnClickListener, ImageLoadingProgressListener {
 
 	public static final int TYPE_NONE = 0;
 	/**
@@ -98,13 +97,11 @@ public class XImageView extends ImageView implements ImageLoadingListener, View.
 	private boolean isZoom = false;
 	private int mRoundColor = Color.TRANSPARENT;
 	private int mBorderWidth;
-	private boolean isShowImageWithoutNetStatus;
 	private float mRectRoundRadius;
 	private Bitmap mLoadedImage;
 	private OnLoadImageListener mOnLoadImageListener;
 	private float mZoomSize = 0;
-	private int mLoadFailedVisibility;
-	private boolean isLoadingImage, isEmptyShow = false, isParentListView;
+	private boolean isLoadingImage, isEmptyShow = false, isParentListView, isParentRecyclerView;
 	private int mDefaultImage;
 	private String urlPrefix;
 
@@ -121,9 +118,7 @@ public class XImageView extends ImageView implements ImageLoadingListener, View.
 		TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.XImageView);
 		isZoom = a.getBoolean(R.styleable.XImageView_autoZoom, false);
 		isAnimation = a.getBoolean(R.styleable.XImageView_isAnim, false);
-		isShowImageWithoutNetStatus = a.getBoolean(R.styleable.XImageView_showImageWithoutNetStatus, false);
 		mZoomSize = a.getFloat(R.styleable.XImageView_zoomSize, 0f);
-		mLoadFailedVisibility = a.getInt(R.styleable.XImageView_loadFailedVisibility, View.VISIBLE);
 		mDefaultImage = a.getResourceId(R.styleable.XImageView_defaultImg, 0);
 
 		mType = a.getInt(R.styleable.XImageView_type, DEFAULT_TYPE);
@@ -208,10 +203,6 @@ public class XImageView extends ImageView implements ImageLoadingListener, View.
 		loadImage(url);
 	}
 
-	public void setShowImageWithoutNetStatus(boolean isShowImageWithoutNetStatus) {
-		this.isShowImageWithoutNetStatus = isShowImageWithoutNetStatus;
-	}
-
 	@Override
 	public void onLoadingStarted(String imageUri, View view) {
 		setDefaultDrawable();
@@ -221,7 +212,6 @@ public class XImageView extends ImageView implements ImageLoadingListener, View.
 	public void onLoadingFailed(String imageUri, View view, FailReason failReason) {
 		loadingStatus(false);
 		setDefaultDrawable();
-		setVisibility(mLoadFailedVisibility);
 		loadImageFailed(this, imageUri);
 	}
 
@@ -285,7 +275,7 @@ public class XImageView extends ImageView implements ImageLoadingListener, View.
 			mUrl = urlPrefix + url;
 		else
 			mUrl = url;
-		if (NetStatusUtils.isNetworkConnected() || isShowImageWithoutNetStatus) {
+		if (NetStatusUtils.isNetworkConnected()) {
 			if (mDefaultImage != 0) {
 				DisplayImageOptions options = new DisplayImageOptions.Builder().bitmapConfig(Config.RGB_565).cacheOnDisk(true).cacheInMemory(true).showImageOnLoading(mDefaultImage).showImageForEmptyUri(mDefaultImage).showImageOnFail(mDefaultImage).build();
 				mImageLoader.loadImage(mUrl, null, options, this, this);
@@ -390,15 +380,6 @@ public class XImageView extends ImageView implements ImageLoadingListener, View.
 		} else {
 			setBackgroundURL(mUrl);
 		}
-	}
-
-	@Override
-	public LayoutParams getLayoutParams() {
-		LayoutParams params = super.getLayoutParams();
-		if (params == null) {
-			params = new LayoutParams(-1, -1);
-		}
-		return params;
 	}
 
 	@Override
@@ -547,6 +528,12 @@ public class XImageView extends ImageView implements ImageLoadingListener, View.
 				break;
 			}
 		}
+		for (int i = 0; i < 5; i++) {
+			if (v.getParent() instanceof View && (v = (View) v.getParent()) instanceof RecyclerView) {
+				isParentRecyclerView = true;
+				break;
+			}
+		}
 	}
 
 	public Bitmap drawableToBitmap(Drawable drawable) {
@@ -573,7 +560,9 @@ public class XImageView extends ImageView implements ImageLoadingListener, View.
 	@Override
 	protected void onDetachedFromWindow() {
 		super.onDetachedFromWindow();
-		reset();
+		if (!isParentRecyclerView) {
+			reset();
+		}
 	}
 
 	public void setImageURL(String url) {
