@@ -50,7 +50,7 @@ public class XViewPager extends ViewPager {
 	@Override
 	public boolean dispatchTouchEvent(MotionEvent ev) {
 		// 告诉父view，我的事件自己处理(解决ViewPager嵌套引起子ViewPager无法触摸问题)
-		getParent().requestDisallowInterceptTouchEvent(true);
+//		getParent().requestDisallowInterceptTouchEvent(true);
 		int action = MotionEventCompat.getActionMasked(ev);
 		if (action == MotionEvent.ACTION_DOWN) {
 			stopTimer();

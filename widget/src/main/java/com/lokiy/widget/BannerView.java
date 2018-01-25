@@ -32,7 +32,6 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 
-import com.lokiy.utils.UIUtils;
 import com.lokiy.view.XImageView;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
@@ -42,12 +41,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ *
+ * {@link #setData(List)} set banner data.
+ * {@link #setDisplayImageOptions(DisplayImageOptions)}
+ * {@link #setHost(Object)}
+ * {@link #setIndicatorParent(RadioGroup)}
+ * {@link #setOnPageSelectedListener(OnPageSelectedListener)}
+ * {@link #setZoomSize(float)}
+ * {@link #getCount()}
+ *
  * @author Luki
  */
 public class BannerView extends ZoomFrameLayout {
 
 	public static final ImageLoader INSTANCE = ImageLoader.getInstance();
 	private final int mPageMargin;
+	private final int mRectRoundRadius;
 	private XViewPager mViewPager;
 	private BannerAdapter mAdapter;
 	private RadioGroup vRadioGroup;
@@ -56,6 +65,7 @@ public class BannerView extends ZoomFrameLayout {
 	private OnPageSelectedListener onPageSelectedListener;
 	private Object host;
 	private boolean isCorner;
+	private DisplayImageOptions displayImageOptions = new DisplayImageOptions.Builder().bitmapConfig(Bitmap.Config.RGB_565).cacheOnDisk(true).cacheInMemory(true).build();
 
 	public BannerView(Context context) {
 		this(context, null);
@@ -71,21 +81,13 @@ public class BannerView extends ZoomFrameLayout {
 		isShowIndicator = a.getBoolean(R.styleable.BannerView_showIndicator, true);
 		mIndicatorId = a.getResourceId(R.styleable.BannerView_indicator, 0);
 		isCorner = a.getBoolean(R.styleable.BannerView_corner, false);
+		mRectRoundRadius = a.getDimensionPixelOffset(R.styleable.BannerView_cornerRadii, 0);
 		mPageMargin = a.getDimensionPixelSize(R.styleable.BannerView_pageMargin, 0);
 		int mIndicatorGravity = a.getInt(R.styleable.BannerView_indicator_gravity, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
 		a.recycle();
 		mViewPager = new XViewPager(getContext(), null);
 		mViewPager.setPageMargin(mPageMargin);
-		addView(mViewPager, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
 		setClipChildren(false);
-		if (isShowIndicator) {
-			vRadioGroup = new RadioGroup(getContext());
-			LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-			params.gravity = mIndicatorGravity;
-			vRadioGroup.setGravity(Gravity.CENTER);
-			vRadioGroup.setOrientation(LinearLayout.HORIZONTAL);
-			addView(vRadioGroup, params);
-		}
 		mAdapter = new BannerAdapter();
 		//noinspection deprecation
 		mViewPager.setOnPageChangeListener(new OnPageChangeListener() {
@@ -108,6 +110,24 @@ public class BannerView extends ZoomFrameLayout {
 			public void onPageScrollStateChanged(int arg0) {}
 		});
 		mViewPager.setAdapter(mAdapter);
+		addView(mViewPager, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+
+		if (isShowIndicator) {
+			vRadioGroup = new RadioGroup(getContext());
+			LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+			params.gravity = mIndicatorGravity;
+			vRadioGroup.setGravity(Gravity.CENTER);
+			vRadioGroup.setOrientation(LinearLayout.HORIZONTAL);
+			addView(vRadioGroup, params);
+		}
+	}
+
+	public void setDisplayImageOptions(DisplayImageOptions displayImageOptions) {
+		this.displayImageOptions = displayImageOptions;
+	}
+
+	public XViewPager getViewPager() {
+		return mViewPager;
 	}
 
 	public void setData(List<? extends IImage> data) {
@@ -155,6 +175,15 @@ public class BannerView extends ZoomFrameLayout {
 		return rb;
 	}
 
+	public RadioGroup getIndicatorParent() {
+		return vRadioGroup;
+	}
+
+	/**
+	 * call before {@link #setData(List)}
+	 *
+	 * @param parent RadioGroup
+	 */
 	public void setIndicatorParent(RadioGroup parent) {
 		if (isShowIndicator) {
 			vRadioGroup.removeAllViews();
@@ -162,7 +191,6 @@ public class BannerView extends ZoomFrameLayout {
 			vRadioGroup = parent;
 			vRadioGroup.setGravity(Gravity.CENTER);
 			vRadioGroup.setOrientation(LinearLayout.HORIZONTAL);
-
 		}
 	}
 
@@ -206,10 +234,6 @@ public class BannerView extends ZoomFrameLayout {
 		private List<IImage> mBannerList = new ArrayList<>();
 		private List<XImageView> mViewList = new ArrayList<>();
 		private List<FrameLayout> mViewGroupList = new ArrayList<>();
-		private DisplayImageOptions build = new DisplayImageOptions.Builder().bitmapConfig(Bitmap.Config.RGB_565)
-				.cacheOnDisk(true).cacheInMemory(true).build();
-		private DisplayImageOptions tipBuild = new DisplayImageOptions.Builder().bitmapConfig(Bitmap.Config.RGB_565)
-				.cacheOnDisk(true).cacheInMemory(true).build();
 
 		public void setData(List<? extends IImage> t) {
 			clear();
@@ -262,15 +286,15 @@ public class BannerView extends ZoomFrameLayout {
 					mViewGroupList.set(position, parent);
 				}
 				if (isCorner) {
-					image.setRoundCorner(UIUtils.dp2px(getContext(), 15));
+					image.setRoundCorner(mRectRoundRadius);
 				}
 				image.setOnClickListener(new OnClickListener() {
 					@Override
 					public void onClick(View v) {
-						bean.onClick();
 						if (host instanceof Dialog) {
 							((Dialog) host).dismiss();
 						}
+						bean.onClick();
 					}
 
 				});
@@ -281,7 +305,7 @@ public class BannerView extends ZoomFrameLayout {
 				if (image == null || image.getParent() instanceof ViewGroup) {
 					image = new XImageView(getContext());
 					if (isCorner) {
-						image.setRoundCorner(UIUtils.dp2px(getContext(), 15));
+						image.setRoundCorner(mRectRoundRadius);
 					}
 					image.setOnClickListener(new OnClickListener() {
 						@Override
@@ -308,7 +332,7 @@ public class BannerView extends ZoomFrameLayout {
 			if (resId != 0) {
 				image.setImageResource(resId);
 			} else {
-				INSTANCE.displayImage(imgUrl, image, isCorner ? tipBuild : build, new SimpleImageLoadingListener() {
+				INSTANCE.displayImage(imgUrl, image, displayImageOptions, new SimpleImageLoadingListener() {
 					@Override
 					public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
 						((ImageView) view).setScaleType(ImageView.ScaleType.CENTER_CROP);

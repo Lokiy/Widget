@@ -24,7 +24,7 @@ android {
 
 dependencies {
 	compile fileTree(dir: 'libs', include: ['*.jar'])
-	compile 'com.lokiy.support:utils:0.2.6'
+	compile 'com.lokiy.support:utils:0.2.8'
 	compile 'com.android.support:appcompat-v7:23.4.0'
 	compile 'com.android.support:design:23.4.0'
 	compile 'com.nostra13.universalimageloader:universal-image-loader:1.9.5'

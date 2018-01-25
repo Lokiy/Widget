@@ -52,6 +52,7 @@ import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
 import com.nostra13.universalimageloader.core.listener.ImageLoadingProgressListener;
 
 import java.io.File;
+import java.util.Locale;
 
 /**
  * 自动加载图片控件
@@ -103,7 +104,7 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 	private float mZoomSize = 0;
 	private boolean isLoadingImage, isEmptyShow = false, isParentListView, isParentRecyclerView;
 	private int mDefaultImage;
-	private String urlPrefix;
+	private static String urlPrefix;
 
 	public XImageView(Context context) {
 		this(context, null);
@@ -187,20 +188,6 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 	 */
 	public void setEmptyShow(boolean isEmptyShow) {
 		this.isEmptyShow = isEmptyShow;
-	}
-
-	public void setBackgroundURL(String url) {
-		this.setBackgroundURL(url, isZoom);
-	}
-
-	/**
-	 * @param url    url
-	 * @param isZoom isZoom
-	 */
-	public void setBackgroundURL(String url, boolean isZoom) {
-		mTask = TASK_BACKGROUND;
-		this.isZoom = isZoom;
-		loadImage(url);
 	}
 
 	@Override
@@ -293,7 +280,7 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 	}
 
 	public void setUrlPrefix(String urlPrefix) {
-		this.urlPrefix = urlPrefix;
+		XImageView.urlPrefix = urlPrefix;
 	}
 
 	public void reset() {
@@ -408,11 +395,51 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 
 	@Override
 	public void setImageURI(Uri uri) {
-		if (uri != null && ("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))) {
-			setImageURL(uri.toString());
-		} else {
-			super.setImageURI(uri);
+		if (uri != null) {
+			String scheme = uri.getScheme();
+			if (!TextUtils.isEmpty(scheme)) {
+				switch (scheme.toLowerCase(Locale.getDefault())) {
+					case "http":
+					case "https":
+						setImageURL(uri.toString());
+						break;
+					case "res":
+						setImageResource(Integer.parseInt(uri.getLastPathSegment()));
+						break;
+					case "file":
+						if ("android_asset".equalsIgnoreCase(uri.getHost())) {
+							try {
+								setImageBitmap(BitmapFactory.decodeStream(getContext().getAssets().open(uri.getPath())));
+							} catch (Exception ignored) {
+							}
+						} else {//FIXME
+							super.setImageURI(uri);
+						}
+						break;
+					default:
+						super.setImageURI(uri);
+						break;
+				}
+			} else {
+				super.setImageURI(uri);
+			}
 		}
+	}
+
+	@Deprecated
+	public void setImageURL(String url) {
+		this.setImageURL(url, isZoom);
+	}
+
+	/**
+	 * @param url    url
+	 * @param isZoom isZoom
+	 */
+	@Deprecated
+	public void setImageURL(String url, boolean isZoom) {
+		mTask = TASK_IMAGE;
+		this.isZoom = isZoom;
+		loadImage(url);
 	}
 
 	@Override
@@ -519,21 +546,8 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 		}
 	}
 
-	private void check() {
-		initImageLoader(getContext());
-		View v = this;
-		for (int i = 0; i < 5; i++) {
-			if (v.getParent() instanceof View && (v = (View) v.getParent()) instanceof AbsListView) {
-				isParentListView = true;
-				break;
-			}
-		}
-		for (int i = 0; i < 5; i++) {
-			if (v.getParent() instanceof View && (v = (View) v.getParent()) instanceof RecyclerView) {
-				isParentRecyclerView = true;
-				break;
-			}
-		}
+	public void setBackgroundURL(String url) {
+		this.setBackgroundURL(url, isZoom);
 	}
 
 	public Bitmap drawableToBitmap(Drawable drawable) {
@@ -565,18 +579,32 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 		}
 	}
 
-	public void setImageURL(String url) {
-		this.setImageURL(url, isZoom);
-	}
-
 	/**
 	 * @param url    url
 	 * @param isZoom isZoom
 	 */
-	public void setImageURL(String url, boolean isZoom) {
-		mTask = TASK_IMAGE;
+	public void setBackgroundURL(String url, boolean isZoom) {
+		mTask = TASK_BACKGROUND;
 		this.isZoom = isZoom;
 		loadImage(url);
+	}
+
+	private void check() {
+		initImageLoader(getContext());
+		View v = this;
+		for (int i = 0; i < 5; i++) {
+			if (v.getParent() instanceof View && (v = (View) v.getParent()) instanceof AbsListView) {
+				isParentListView = true;
+				break;
+			}
+		}
+		v = this;
+		for (int i = 0; i < 5; i++) {
+			if (v.getParent() instanceof View && (v = (View) v.getParent()) instanceof RecyclerView) {
+				isParentRecyclerView = true;
+				break;
+			}
+		}
 	}
 
 	@Override

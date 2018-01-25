@@ -33,9 +33,9 @@ import android.view.View;
  */
 public class XTextView extends AppCompatTextView {
 
-	private final int minTextSize;
-	private final int maxTextSize;
-	private final boolean autoZoom;
+	private int minTextSize;
+	private int maxTextSize;
+	private boolean autoZoom;
 	private Paint textPaint;
 	private CharSequence mLastMeasureText;
 
@@ -65,6 +65,18 @@ public class XTextView extends AppCompatTextView {
 				setText(getFormatText(debugText));
 			}
 		}
+	}
+
+	public void setAutoZoom(boolean autoZoom) {
+		this.autoZoom = autoZoom;
+	}
+
+	public void setMaxTextSize(int maxTextSize) {
+		this.maxTextSize = maxTextSize;
+	}
+
+	public void setMinTextSize(int minTextSize) {
+		this.minTextSize = minTextSize;
 	}
 
 	private CharSequence getFormatText(String replace) {
@@ -151,7 +163,7 @@ public class XTextView extends AppCompatTextView {
 	}
 
 	@Override
-	public void setOnClickListener(final OnClickListener l) {
+	public void setOnClickListener(OnClickListener l) {
 		super.setOnClickListener(new ProxyClickListener(l));
 	}
 
