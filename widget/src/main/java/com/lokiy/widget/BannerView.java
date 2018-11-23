@@ -32,10 +32,8 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 
+import com.lokiy.control.WidgetConfig;
 import com.lokiy.view.XImageView;
-import com.nostra13.universalimageloader.core.DisplayImageOptions;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +41,6 @@ import java.util.List;
 /**
  *
  * {@link #setData(List)} set banner data.
- * {@link #setDisplayImageOptions(DisplayImageOptions)}
  * {@link #setHost(Object)}
  * {@link #setIndicatorParent(RadioGroup)}
  * {@link #setOnPageSelectedListener(OnPageSelectedListener)}
@@ -54,7 +51,6 @@ import java.util.List;
  */
 public class BannerView extends ZoomFrameLayout {
 
-	public static final ImageLoader INSTANCE = ImageLoader.getInstance();
 	private final int mPageMargin;
 	private final int mRectRoundRadius;
 	private XViewPager mViewPager;
@@ -65,7 +61,6 @@ public class BannerView extends ZoomFrameLayout {
 	private OnPageSelectedListener onPageSelectedListener;
 	private Object host;
 	private boolean isCorner;
-	private DisplayImageOptions displayImageOptions = new DisplayImageOptions.Builder().bitmapConfig(Bitmap.Config.RGB_565).cacheOnDisk(true).cacheInMemory(true).build();
 
 	public BannerView(Context context) {
 		this(context, null);
@@ -122,15 +117,11 @@ public class BannerView extends ZoomFrameLayout {
 		}
 	}
 
-	public void setDisplayImageOptions(DisplayImageOptions displayImageOptions) {
-		this.displayImageOptions = displayImageOptions;
-	}
-
 	public XViewPager getViewPager() {
 		return mViewPager;
 	}
 
-	public void setData(List<? extends IImage> data) {
+	public void setData(List<? extends IBanner> data) {
 		if (data == null) {
 			return;
 		}
@@ -220,22 +211,22 @@ public class BannerView extends ZoomFrameLayout {
 		this.host = host;
 	}
 
-	public interface IImage {
+	public interface IBanner {
 		String getImgURL();
 
 		void onClick();
 	}
 
 	public interface OnPageSelectedListener {
-		void onPageSelected(int position, IImage image);
+		void onPageSelected(int position, IBanner image);
 	}
 
 	private class BannerAdapter extends PagerAdapter {
-		private List<IImage> mBannerList = new ArrayList<>();
+		private List<IBanner> mBannerList = new ArrayList<>();
 		private List<XImageView> mViewList = new ArrayList<>();
 		private List<FrameLayout> mViewGroupList = new ArrayList<>();
 
-		public void setData(List<? extends IImage> t) {
+		public void setData(List<? extends IBanner> t) {
 			clear();
 			mBannerList.addAll(t);
 			for (int i = 0, length = mBannerList.size(); i < length; i++) {
@@ -271,7 +262,7 @@ public class BannerView extends ZoomFrameLayout {
 		@Override
 		public Object instantiateItem(ViewGroup container, int position) {
 			position = position % getRealCount();
-			final IImage bean = mBannerList.get(position);
+			final IBanner bean = mBannerList.get(position);
 			View view;
 			XImageView image;
 			if (mPageMargin > 0) {
@@ -332,12 +323,7 @@ public class BannerView extends ZoomFrameLayout {
 			if (resId != 0) {
 				image.setImageResource(resId);
 			} else {
-				INSTANCE.displayImage(imgUrl, image, displayImageOptions, new SimpleImageLoadingListener() {
-					@Override
-					public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
-						((ImageView) view).setScaleType(ImageView.ScaleType.CENTER_CROP);
-					}
-				});
+				WidgetConfig.getConfig().getImageLoader().loadImage(image, imgUrl);
 			}
 			return view;
 		}

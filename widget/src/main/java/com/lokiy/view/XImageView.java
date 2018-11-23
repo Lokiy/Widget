@@ -28,30 +28,15 @@ import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.DrawableContainer;
-import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
-import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.AbsListView;
 
-import com.lokiy.utils.NetStatusUtils;
-import com.lokiy.utils.XLog;
+import com.lokiy.control.WidgetConfig;
 import com.lokiy.widget.R;
-import com.nostra13.universalimageloader.core.DisplayImageOptions;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration.Builder;
-import com.nostra13.universalimageloader.core.assist.FailReason;
-import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
-import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
-import com.nostra13.universalimageloader.core.listener.ImageLoadingProgressListener;
 
-import java.io.File;
 import java.util.Locale;
 
 /**
@@ -59,32 +44,18 @@ import java.util.Locale;
  *
  * @author Luki
  */
-@SuppressWarnings({
-		"deprecation",
-		"unused"
-})
-public class XImageView extends android.support.v7.widget.AppCompatImageView implements ImageLoadingListener, View.OnClickListener, ImageLoadingProgressListener {
+@SuppressWarnings({"deprecation", "unused"})
+public class XImageView extends android.support.v7.widget.AppCompatImageView {
 
-	public static final int TYPE_NONE = 0;
-	/**
-	 * 圆形
-	 */
-	public static final int TYPE_CIRCLE = 1;
-	/**
-	 * 圆角矩形
-	 */
-	public static final int TYPE_ROUNDED_RECT = 2;
 	private static final String TAG = XImageView.class.getSimpleName();
 	private static final int MAX_RETRY_TIMES = 3;
-	private static final ImageLoader mImageLoader = ImageLoader.getInstance();
-	private static final int DEFAULT_TYPE = TYPE_NONE;
+	private static final Type DEFAULT_TYPE = Type.NONE;
 	private static final int DEFAULT_BORDER_COLOR = Color.TRANSPARENT;
 	private static final int DEFAULT_BORDER_WIDTH = 0;
 	private static final int DEFAULT_RECT_ROUND_RADIUS = 0;
 	private final int TASK_IMAGE = 0x01;
 	private final int TASK_BACKGROUND = 0x02;
-	protected int mRetryTimes;
-	private int mType;
+	private Type mType;
 	private Paint mPaintBitmap = new Paint(Paint.ANTI_ALIAS_FLAG);
 	private Paint mPaintBorder = new Paint(Paint.ANTI_ALIAS_FLAG);
 	private RectF mRectBorder = new RectF();
@@ -100,11 +71,29 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 	private int mBorderWidth;
 	private float mRectRoundRadius;
 	private Bitmap mLoadedImage;
-	private OnLoadImageListener mOnLoadImageListener;
 	private float mZoomSize = 0;
 	private boolean isLoadingImage, isEmptyShow = false, isParentListView, isParentRecyclerView;
 	private int mDefaultImage;
 	private static String urlPrefix;
+
+	public enum Type {
+		NONE(0), CIRCLE(1),//圆形
+		RECT(2);//圆角矩形
+		private final int type;
+
+		Type(int type) {
+			this.type = type;
+		}
+
+		static Type getType(int type) {
+			for (Type t : Type.values()) {
+				if (t.type == type) {
+					return t;
+				}
+			}
+			return NONE;
+		}
+	}
 
 	public XImageView(Context context) {
 		this(context, null);
@@ -122,13 +111,13 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 		mZoomSize = a.getFloat(R.styleable.XImageView_zoomSize, 0f);
 		mDefaultImage = a.getResourceId(R.styleable.XImageView_defaultImg, 0);
 
-		mType = a.getInt(R.styleable.XImageView_type, DEFAULT_TYPE);
+		mType = Type.getType(a.getInt(R.styleable.XImageView_type, DEFAULT_TYPE.ordinal()));
 		mRoundColor = a.getColor(R.styleable.XImageView_roundColor, Color.TRANSPARENT);
-		mBorderWidth = a.getDimensionPixelSize(R.styleable.XImageView_borderWidth, dip2px(DEFAULT_BORDER_WIDTH));
+		mBorderWidth = a.getDimensionPixelSize(R.styleable.XImageView_borderWidth, getDefaultBorderSize());
 		mRectRoundRadius = a.getDimensionPixelOffset(R.styleable.XImageView_cornerRadii, 0);
 		a.recycle();
 
-		if (mType != TYPE_NONE) {
+		if (mType != Type.NONE) {
 			if (getBackground() != null) {
 				setBackgroundDrawable(getBackground());
 			}
@@ -136,23 +125,21 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 				setImageDrawable(getDrawable());
 			}
 		}
-
-		check();
 	}
 
-	private int dip2px(int dipVal) {
+	private int getDefaultBorderSize() {
 		float scale = getResources().getDisplayMetrics().density;
-		return (int) (dipVal * scale + 0.5f);
+		return (int) (XImageView.DEFAULT_BORDER_WIDTH * scale + 0.5f);
 	}
 
 	public void setRound(int borderWidth, int roundColor) {
-		mType = TYPE_CIRCLE;
+		mType = Type.CIRCLE;
 		this.mBorderWidth = borderWidth;
 		this.mRoundColor = roundColor;
 	}
 
 	public void setRoundCorner(float radius) {
-		mType = TYPE_ROUNDED_RECT;
+		mType = Type.RECT;
 		this.mRectRoundRadius = radius;
 	}
 
@@ -190,45 +177,6 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 		this.isEmptyShow = isEmptyShow;
 	}
 
-	@Override
-	public void onLoadingStarted(String imageUri, View view) {
-		setDefaultDrawable();
-	}
-
-	@Override
-	public void onLoadingFailed(String imageUri, View view, FailReason failReason) {
-		loadingStatus(false);
-		setDefaultDrawable();
-		loadImageFailed(this, imageUri);
-	}
-
-	@Override
-	public void onLoadingComplete(String imageUri, View view, final Bitmap loadedImage) {
-		loadingStatus(false);
-		if (loadedImage != null) {
-			onLoadingComplete(new BitmapDrawable(getResources(), mLoadedImage = loadedImage));
-			loadImageSuccess(this, imageUri);
-		} else {
-			setDefaultDrawable();
-		}
-	}
-
-	@Override
-	public void onLoadingCancelled(String imageUri, View view) {
-		loadingStatus(false);
-		postDelayed(new Runnable() {
-
-			@Override
-			public void run() {
-				if (mRetryTimes < MAX_RETRY_TIMES) {
-					loadImage(mUrl);
-					mRetryTimes++;
-				} else {
-					XLog.w(TAG, "onLoadingCancelled ==========> url:" + mUrl);
-				}
-			}
-		}, 1000);
-	}
 
 	private boolean loadingStatus(boolean loading) {
 		boolean isLoading = false;
@@ -241,80 +189,6 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 		return isLoading;
 	}
 
-	private void loadImage(String url) {
-		if (isParentListView) {
-			reset();
-		}
-
-		if (!mImageLoader.isInited()) {
-			initImageLoader(getContext());
-		}
-
-		if (loadingStatus(true)) {
-			return;
-		}
-		if (TextUtils.isEmpty(url)) {
-			onLoadingFailed(url, this, null);
-			return;
-		}
-
-		if (!url.contains("http"))
-			mUrl = urlPrefix + url;
-		else
-			mUrl = url;
-		if (NetStatusUtils.isNetworkConnected()) {
-			if (mDefaultImage != 0) {
-				DisplayImageOptions options = new DisplayImageOptions.Builder().bitmapConfig(Config.RGB_565).cacheOnDisk(true).cacheInMemory(true).showImageOnLoading(mDefaultImage).showImageForEmptyUri(mDefaultImage).showImageOnFail(mDefaultImage).build();
-				mImageLoader.loadImage(mUrl, null, options, this, this);
-			} else
-				mImageLoader.loadImage(mUrl, null, null, this, this);
-		} else {
-			File file = mImageLoader.getDiskCache().get(mUrl);
-			if (file != null && file.exists()) {
-				mImageLoader.loadImage(mUrl, null, null, this, this);
-			} else {
-				setDefaultDrawable();
-				loadImageFailed(this, mUrl);
-			}
-		}
-	}
-
-	public void setUrlPrefix(String urlPrefix) {
-		XImageView.urlPrefix = urlPrefix;
-	}
-
-	public void reset() {
-		mRetryTimes = 0;
-		isLoadingImage = false;
-		mImageLoader.cancelDisplayTask(this);
-		setDefaultDrawable();
-	}
-
-	public static synchronized void initImageLoader(Context context) {
-		if (!ImageLoader.getInstance().isInited()) {
-			DisplayImageOptions defaultDisplayImageOptions = new DisplayImageOptions.Builder()
-					.bitmapConfig(Config.RGB_565)
-					.cacheOnDisk(true)
-					.cacheInMemory(true)
-					.build();
-			Builder builder = new ImageLoaderConfiguration.Builder(context)
-					.threadPriority(Thread.NORM_PRIORITY - 2)
-					.denyCacheImageMultipleSizesInMemory()
-					.tasksProcessingOrder(QueueProcessingType.LIFO)
-					.threadPoolSize(5)
-					.defaultDisplayImageOptions(defaultDisplayImageOptions)
-					.memoryCacheSizePercentage(60);
-			ImageLoaderConfiguration config = builder.build();
-			ImageLoader.getInstance().init(config);
-		}
-	}
-
-	private void loadImageFailed(XImageView view, String uri) {
-		if (mOnLoadImageListener != null) {
-			mOnLoadImageListener.onLoadImageFailed(this, uri);
-		}
-	}
-
 	private void setDefaultDrawable() {
 		if (!isEmptyShow) {
 			int res = mDefaultImage;
@@ -322,7 +196,7 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 			if (res == 0) {
 				mTempDrawable = new ColorDrawable(0);
 			} else {
-				if (mType != TYPE_NONE) {
+				if (mType != Type.NONE) {
 					Bitmap bitmap = BitmapFactory.decodeResource(getResources(), res);
 					mTempDrawable = new BitmapDrawable(bitmap);
 				} else {
@@ -361,36 +235,13 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 	}
 
 	@Override
-	public void onClick(View v) {
-		if (mTask == TASK_IMAGE) {
-			setImageURL(mUrl);
-		} else {
-			setBackgroundURL(mUrl);
-		}
-	}
-
-	@Override
-	public void setBackgroundDrawable(Drawable drawable) {
-		if (mTask != TASK_BACKGROUND || drawable instanceof DrawableContainer || drawable instanceof GradientDrawable) {
-			super.setBackgroundDrawable(drawable);
-		} else if (drawable != null) {
-			onLoadingComplete(mUrl, this, drawableToBitmap(drawable));
-		}
-	}
-
-	public void setOnLoadImageListener(OnLoadImageListener l) {
-		this.mOnLoadImageListener = l;
-	}
-
-	private void loadImageSuccess(XImageView view, String uri) {
-		if (mOnLoadImageListener != null) {
-			mOnLoadImageListener.onLoadImageSuccess(this, uri);
-		}
-	}
-
-	@Override
 	public void setImageResource(int resId) {
 		super.setImageResource(resId);
+	}
+
+
+	public void setImageURI(String uri){
+		setImageURI(Uri.parse(uri));
 	}
 
 	@Override
@@ -401,7 +252,7 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 				switch (scheme.toLowerCase(Locale.getDefault())) {
 					case "http":
 					case "https":
-						setImageURL(uri.toString());
+						WidgetConfig.getConfig().getImageLoader().loadImage(this, uri.toString());
 						break;
 					case "res":
 						setImageResource(Integer.parseInt(uri.getLastPathSegment()));
@@ -409,8 +260,14 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 					case "file":
 						if ("android_asset".equalsIgnoreCase(uri.getHost())) {
 							try {
-								setImageBitmap(BitmapFactory.decodeStream(getContext().getAssets().open(uri.getPath())));
-							} catch (Exception ignored) {
+								String path = uri.getPath();
+								if (!TextUtils.isEmpty(path)) {
+									setImageBitmap(BitmapFactory.decodeStream(getContext().getAssets().open(path)));
+								} else {
+									throw new Exception("uri:" + uri.toString() + " path is null");
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
 							}
 						} else {//FIXME
 							super.setImageURI(uri);
@@ -426,31 +283,6 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 		}
 	}
 
-	@Deprecated
-	public void setImageURL(String url) {
-		this.setImageURL(url, isZoom);
-	}
-
-	/**
-	 * @param url    url
-	 * @param isZoom isZoom
-	 */
-	@Deprecated
-	public void setImageURL(String url, boolean isZoom) {
-		mTask = TASK_IMAGE;
-		this.isZoom = isZoom;
-		loadImage(url);
-	}
-
-	@Override
-	public void setImageDrawable(Drawable drawable) {
-		mTask = TASK_IMAGE;
-		if (drawable instanceof DrawableContainer) {
-			super.setImageDrawable(drawable);
-		} else if (drawable != null) {
-			onLoadingComplete(mUrl, this, drawableToBitmap(drawable));
-		}
-	}
 
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -478,12 +310,12 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 	protected void onDraw(Canvas canvas) {
 		Bitmap rawBitmap = getBitmap(getDrawable());
 
-		if (rawBitmap != null && mType != TYPE_NONE) {
+		if (rawBitmap != null && mType != Type.NONE) {
 			int viewWidth = getWidth();
 			int viewHeight = getHeight();
 			int viewMinSize = Math.min(viewWidth, viewHeight);
-			float dstWidth = mType == TYPE_CIRCLE ? viewMinSize : viewWidth;
-			float dstHeight = mType == TYPE_CIRCLE ? viewMinSize : viewHeight;
+			float dstWidth = mType == Type.CIRCLE ? viewMinSize : viewWidth;
+			float dstHeight = mType == Type.CIRCLE ? viewMinSize : viewHeight;
 			float halfBorderWidth = mBorderWidth / 2.0f;
 			float doubleBorderWidth = mBorderWidth * 2;
 
@@ -491,22 +323,21 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 				mRawBitmap = rawBitmap;
 				mShader = new BitmapShader(mRawBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
 			}
-			if (mShader != null) {
-				mMatrix.setScale((dstWidth - doubleBorderWidth) / rawBitmap.getWidth(), (dstHeight - doubleBorderWidth) / rawBitmap.getHeight());
-				mShader.setLocalMatrix(mMatrix);
-			}
+
+			mMatrix.setScale((dstWidth - doubleBorderWidth) / rawBitmap.getWidth(), (dstHeight - doubleBorderWidth) / rawBitmap.getHeight());
+			mShader.setLocalMatrix(mMatrix);
 
 			mPaintBitmap.setShader(mShader);
 			mPaintBorder.setStyle(Paint.Style.STROKE);
 			mPaintBorder.setStrokeWidth(mBorderWidth);
 			mPaintBorder.setColor(mBorderWidth > 0 ? mRoundColor : Color.TRANSPARENT);
 
-			if (mType == TYPE_CIRCLE) {
+			if (mType == Type.CIRCLE) {
 				float radius = viewMinSize / 2.0f;
 				canvas.drawCircle(radius, radius, radius - halfBorderWidth, mPaintBorder);
 				canvas.translate(mBorderWidth, mBorderWidth);
 				canvas.drawCircle(radius - mBorderWidth, radius - mBorderWidth, radius - mBorderWidth, mPaintBitmap);
-			} else if (mType == TYPE_ROUNDED_RECT) {
+			} else if (mType == Type.RECT) {
 				mRectBorder.set(halfBorderWidth + getPaddingLeft(), halfBorderWidth + getPaddingTop(), dstWidth - halfBorderWidth - getPaddingRight(), dstHeight - halfBorderWidth - getPaddingBottom());
 				mRectBitmap.set(0.0f, 0.0f, dstWidth - doubleBorderWidth, dstHeight - doubleBorderWidth);
 				float borderRadius = mRectRoundRadius - halfBorderWidth > 0.0f ? mRectRoundRadius - halfBorderWidth : 0.0f;
@@ -537,19 +368,6 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 		}
 	}
 
-	@Override
-	protected void onAttachedToWindow() {
-		super.onAttachedToWindow();
-		check();
-		if (mLoadedImage == null && getDrawable() != null) {
-			mLoadedImage = drawableToBitmap(getDrawable());
-		}
-	}
-
-	public void setBackgroundURL(String url) {
-		this.setBackgroundURL(url, isZoom);
-	}
-
 	public Bitmap drawableToBitmap(Drawable drawable) {
 		if (drawable instanceof BitmapDrawable) {
 			return ((BitmapDrawable) drawable).getBitmap();
@@ -569,62 +387,5 @@ public class XImageView extends android.support.v7.widget.AppCompatImageView imp
 		drawable.draw(canvas);
 
 		return bitmap;
-	}
-
-	@Override
-	protected void onDetachedFromWindow() {
-		super.onDetachedFromWindow();
-		if (!isParentRecyclerView) {
-			reset();
-		}
-	}
-
-	/**
-	 * @param url    url
-	 * @param isZoom isZoom
-	 */
-	public void setBackgroundURL(String url, boolean isZoom) {
-		mTask = TASK_BACKGROUND;
-		this.isZoom = isZoom;
-		loadImage(url);
-	}
-
-	private void check() {
-		initImageLoader(getContext());
-		View v = this;
-		for (int i = 0; i < 5; i++) {
-			if (v.getParent() instanceof View && (v = (View) v.getParent()) instanceof AbsListView) {
-				isParentListView = true;
-				break;
-			}
-		}
-		v = this;
-		for (int i = 0; i < 5; i++) {
-			if (v.getParent() instanceof View && (v = (View) v.getParent()) instanceof RecyclerView) {
-				isParentRecyclerView = true;
-				break;
-			}
-		}
-	}
-
-	@Override
-	public void onProgressUpdate(String imageUri, View view, int current, int total) {
-		if (view instanceof XImageView) {
-			progressUpdate((XImageView) view, imageUri, current, total);
-		}
-	}
-
-	private void progressUpdate(XImageView view, String imageUri, int current, int total) {
-		if (mOnLoadImageListener != null) {
-			mOnLoadImageListener.onProgressUpdate(this, imageUri, current, total);
-		}
-	}
-
-	public interface OnLoadImageListener {
-		void onLoadImageFailed(XImageView view, String uri);
-
-		void onLoadImageSuccess(XImageView view, String uri);
-
-		void onProgressUpdate(XImageView view, String uri, int current, int total);
 	}
 }

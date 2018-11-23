@@ -2,12 +2,11 @@ apply plugin: 'com.android.library'
 
 android {
 	compileOptions.encoding = "UTF-8"
-	compileSdkVersion 23
-	buildToolsVersion '25.0.3'
+	compileSdkVersion 28
 
 	defaultConfig {
 		minSdkVersion 14
-		targetSdkVersion 23
+		targetSdkVersion 28
 		versionCode 1
 		versionName "1.0"
 	}
@@ -23,11 +22,9 @@ android {
 }
 
 dependencies {
-	compile fileTree(dir: 'libs', include: ['*.jar'])
-	compile 'com.lokiy.support:utils:0.2.8'
-	compile 'com.android.support:appcompat-v7:23.4.0'
-	compile 'com.android.support:design:23.4.0'
-	compile 'com.nostra13.universalimageloader:universal-image-loader:1.9.5'
+	implementation fileTree(dir: 'libs', include: ['*.jar'])
+	api 'com.lokiy.support:utils:0.3.6'
+	implementation 'com.android.support:appcompat-v7:28.0.0'
 }
 
 apply from: 'https://raw.githubusercontent.com/Lokiy/Utils/master/bintray.gradle'
