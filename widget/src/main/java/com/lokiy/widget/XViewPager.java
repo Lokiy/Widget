@@ -29,6 +29,7 @@ import android.view.MotionEvent;
 @SuppressLint("ClickableViewAccessibility")
 public class XViewPager extends ViewPager {
 	private static Handler handler = new Handler();
+	private long delay = 5000;
 	private boolean enableScrolled = true;
 	private boolean isAutoScroll;
 
@@ -68,8 +69,16 @@ public class XViewPager extends ViewPager {
 
 	private void startTimer() {
 		stopTimer();
-		long delay = 5000;
 		handler.postDelayed(action, delay);
+	}
+
+	/**
+	 * Set how often to scroll once
+	 *
+	 * @param delay time delay
+	 */
+	public void setScrollTimeDelay(long delay) {
+		this.delay = delay;
 	}
 
 	public void startScroll() {
