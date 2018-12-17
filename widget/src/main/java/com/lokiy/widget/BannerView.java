@@ -15,7 +15,6 @@
  */
 package com.lokiy.widget;
 
-import android.app.Dialog;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -195,7 +194,9 @@ public class BannerView extends ZoomFrameLayout {
 
     public void startScroll(int scrollTimeMillis) {
         if (getCount() > 1) {
-            mViewPager.setScrollTimeDelay(scrollTimeMillis);
+            if (scrollTimeMillis > 0) {
+                mViewPager.setScrollTimeDelay(scrollTimeMillis);
+            }
             mViewPager.startScroll();
         }
     }
@@ -224,6 +225,19 @@ public class BannerView extends ZoomFrameLayout {
         this.onPageClickListener = onPageClickListener;
     }
 
+    /**
+     * 暂停
+     */
+    public void pause() {
+        mViewPager.pause();
+    }
+
+    /**
+     * 继续
+     */
+    public void resume() {
+        mViewPager.resume();
+    }
 
     /**
      * Set the currently selected page. If the ViewPager has already been through its first
@@ -267,11 +281,12 @@ public class BannerView extends ZoomFrameLayout {
          * on page clicked
          *
          * @param position position
-         * @param image bean
-         * @param view bannerView
+         * @param iBanner bean
+         * @param view clicked view
+         * @param bannerView parent view .. bannerView
          * @param host see more {@link #setHost(Object)}
          */
-        void onPageClick(int position, IBanner image, View view, BannerView bannerView, Object host);
+        void onPageClick(int position, IBanner iBanner, View view, BannerView bannerView, Object host);
     }
 
     private class BannerAdapter extends PagerAdapter {
@@ -333,20 +348,26 @@ public class BannerView extends ZoomFrameLayout {
             if (mPageMargin > 0) {
                 FrameLayout parent = mViewGroupList.get(position);
                 image = mViewList.get(position);
-                if (parent == null || parent.getParent() instanceof ViewGroup || image == null) {
+                if (parent == null || (parent.getParent() instanceof ViewGroup && parent.getTag(R.id.rounded_rect) != null && (int) parent.getTag(R.id.rounded_rect) != position) || image == null) {
                     parent = new FrameLayout(getContext());
+                    parent.setTag(R.id.rounded_rect, position);
                     parent.setPadding(mPageMargin, (int) (mPageMargin * getZoomSize()), mPageMargin, (int) (mPageMargin * getZoomSize()));
                     image = new XImageView(getContext());
                     parent.addView(image, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
                     mViewList.set(position, image);
                     mViewGroupList.set(position, parent);
+                } else {
+                    return parent;
                 }
                 view = parent;
             } else {
                 image = mViewList.get(position);
-                if (image == null || image.getParent() instanceof ViewGroup) {
+                if (image == null || (image.getParent() instanceof ViewGroup && image.getTag(R.id.rounded_rect) != null && (int) image.getTag(R.id.rounded_rect) != position)) {
                     image = new XImageView(getContext());
+                    image.setTag(R.id.rounded_rect, position);
                     mViewList.set(position, image);
+                } else {
+                    return image;
                 }
                 view = image;
             }
@@ -354,7 +375,6 @@ public class BannerView extends ZoomFrameLayout {
                 image.setRoundCorner(mRectRoundRadius);
             }
             image.setOnClickListener(onClickListener);
-            container.addView(view, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
             String imgUrl = bean.getImgURL();
             int resId = 0;
             try {
@@ -367,6 +387,7 @@ public class BannerView extends ZoomFrameLayout {
             } else {
                 WidgetConfig.getConfig().getImageLoader().loadImage(image, imgUrl);
             }
+            container.addView(view, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
             return view;
         }
 
