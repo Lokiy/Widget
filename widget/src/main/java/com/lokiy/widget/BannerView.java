@@ -62,6 +62,7 @@ public class BannerView extends ZoomFrameLayout {
     private OnPageClickListener onPageClickListener;
     private Object host;
     private boolean isCorner;
+    private boolean isStopScroll;
 
     public BannerView(Context context) {
         this(context, null);
@@ -189,6 +190,7 @@ public class BannerView extends ZoomFrameLayout {
     }
 
     public void startScroll() {
+        isStopScroll = false;
         startScroll(0);
     }
 
@@ -206,6 +208,7 @@ public class BannerView extends ZoomFrameLayout {
     }
 
     public void stopScroll() {
+        isStopScroll = true;
         mViewPager.stopScroll();
     }
 
@@ -304,9 +307,11 @@ public class BannerView extends ZoomFrameLayout {
             notifyDataSetChanged();
             if (getRealCount() > 1) {
                 mViewPager.setCurrentItem(getRealCount() * 2048);
-                startScroll();
+                if (!isStopScroll) {
+                    startScroll();
+                }
             } else {
-                stopScroll();
+                mViewPager.stopScroll();
             }
         }
 
@@ -314,7 +319,7 @@ public class BannerView extends ZoomFrameLayout {
             mBannerList.clear();
             mViewList.clear();
             mViewGroupList.clear();
-            stopScroll();
+            mViewPager.stopScroll();
         }
 
         int getRealCount() {
@@ -348,26 +353,20 @@ public class BannerView extends ZoomFrameLayout {
             if (mPageMargin > 0) {
                 FrameLayout parent = mViewGroupList.get(position);
                 image = mViewList.get(position);
-                if (parent == null || (parent.getParent() instanceof ViewGroup && parent.getTag(R.id.rounded_rect) != null && (int) parent.getTag(R.id.rounded_rect) != position) || image == null) {
+                if (parent == null || parent.getParent() instanceof ViewGroup || image == null) {
                     parent = new FrameLayout(getContext());
-                    parent.setTag(R.id.rounded_rect, position);
                     parent.setPadding(mPageMargin, (int) (mPageMargin * getZoomSize()), mPageMargin, (int) (mPageMargin * getZoomSize()));
                     image = new XImageView(getContext());
                     parent.addView(image, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
                     mViewList.set(position, image);
                     mViewGroupList.set(position, parent);
-                } else {
-                    return parent;
                 }
                 view = parent;
             } else {
                 image = mViewList.get(position);
-                if (image == null || (image.getParent() instanceof ViewGroup && image.getTag(R.id.rounded_rect) != null && (int) image.getTag(R.id.rounded_rect) != position)) {
+                if (image == null || image.getParent() instanceof ViewGroup) {
                     image = new XImageView(getContext());
-                    image.setTag(R.id.rounded_rect, position);
                     mViewList.set(position, image);
-                } else {
-                    return image;
                 }
                 view = image;
             }

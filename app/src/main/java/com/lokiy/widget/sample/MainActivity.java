@@ -62,19 +62,19 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         data.add(iBanner);
-        iBanner = new BannerView.IBanner() {
-            @Override
-            public String getImgURL() {
-                return "http://c.hiphotos.baidu.com/image/pic/item/77c6a7efce1b9d16efbcc03afedeb48f8c546475.jpg";
-            }
-
-            @Override
-            public void onClick() {
-
-            }
-        };
-        data.add(iBanner);
+//        iBanner = new BannerView.IBanner() {
+//            @Override
+//            public String getImgURL() {
+//                return "http://c.hiphotos.baidu.com/image/pic/item/77c6a7efce1b9d16efbcc03afedeb48f8c546475.jpg";
+//            }
+//
+//            @Override
+//            public void onClick() {
+//
+//            }
+//        };
+//        data.add(iBanner);
+        banner.getViewPager().setOffscreenPageLimit(1);
         banner.setData(data);
-
     }
 }
